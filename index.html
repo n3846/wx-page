@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>丹诚售后 - 客户信息查询</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  .header {
+    background: linear-gradient(135deg, #1890ff, #096dd9);
+    color: #fff;
+    padding: 22px 20px 26px;
+    position: sticky;
+    top: 0;
+    z-index: 99;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+  .header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+  .search-wrap {
+    margin: -18px 16px 0;
+    position: relative;
+    z-index: 100;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 0 14px;
+    height: 48px;
+  }
+  .search-box .icon { font-size: 18px; color: #999; margin-right: 8px; }
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    color: #333;
+    background: transparent;
+    height: 44px;
+  }
+  .search-box input::placeholder { color: #bbb; }
+  .search-box .clear {
+    display: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #ddd;
+    color: #fff;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .search-box .clear.show { display: block; }
+
+  .stats {
+    padding: 12px 16px 6px;
+    font-size: 13px;
+    color: #888;
+  }
+
+  .list { padding: 6px 16px; }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: transform 0.15s;
+  }
+  .card:active { transform: scale(0.98); }
+  .card .name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card .name .badge {
+    font-size: 10px;
+    background: #e6f7ff;
+    color: #1890ff;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 400;
+  }
+  .card .info-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #555;
+    gap: 10px;
+  }
+  .card .info-row .label {
+    width: 56px;
+    flex-shrink: 0;
+    color: #999;
+    font-size: 13px;
+  }
+  .card .info-row .value {
+    flex: 1;
+    word-break: break-all;
+  }
+  .card .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    flex: 1;
+    transition: opacity 0.15s;
+  }
+  .btn:active { opacity: 0.75; }
+  .btn-call {
+    background: #52c41a;
+    color: #fff;
+  }
+  .btn-nav {
+    background: #1890ff;
+    color: #fff;
+  }
+  .btn-disabled {
+    background: #f0f0f0;
+    color: #ccc;
+    pointer-events: none;
+  }
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: #bbb;
+    font-size: 15px;
+  }
+  .empty .big-icon { font-size: 54px; margin-bottom: 14px; }
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: #bbb;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔧 丹诚售后 · 客户信息</h1>
+  <p>输入客户名称快速查询电话和地址</p>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span class="icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="输入客户名称，如 树涛、郭广祥…" autocomplete="off">
+    <div class="clear" id="clearBtn">✕</div>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+<div class="list" id="list"></div>
+<div class="footer">汕头市潮阳区丹诚针车行 · 售后专用</div>
+
+<script>
+// ===== 客户数据（来自售后工单管理 - 客户信息子表） =====
+const CUSTOMERS = [
+  { name: "陈健", phone: "", address: "" },
+  { name: "张少明", phone: "", address: "" },
+  { name: "棉城庆轩厂", phone: "13413434137", address: "纺织园纵一路与横3路交叉口，9区05A2栋二楼" },
+  { name: "包公厂", phone: "", address: "" },
+  { name: "龙彩纺织", phone: "", address: "" },
+  { name: "杰豪", phone: "", address: "" },
+  { name: "陈店钟卫伦", phone: "15322595582", address: "你好" },
+  { name: "郭桂轩", phone: "", address: "" },
+  { name: "锦嘉发", phone: "", address: "" },
+  { name: "玉姿厂", phone: "", address: "" },
+  { name: "爱蜜儿总厂", phone: "", address: "" },
+  { name: "树涛", phone: "18144407965", address: "https://mmapgwh.map.qq.com/shortlink/short?l=_6e37609511b8d7ad3e7e51c51d5154bf&tempSource=pcMap", addressLabel: "点击查看地图导航" },
+  { name: "郭广祥", phone: "13433800338", address: "https://j.map.baidu.com/08/uhIM", addressLabel: "点击查看地图导航" }
+];
+
+function isUrl(str) {
+  if (!str) return false;
+  return str.startsWith("http://") || str.startsWith("https://");
+}
+
+function renderList(data) {
+  const listEl = document.getElementById('list');
+  const statsEl = document.getElementById('stats');
+
+  if (data.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="big-icon">😕</div>未找到匹配的客户<br><span style="font-size:13px;color:#ccc;">试试其他关键词</span></div>';
+    statsEl.textContent = '';
+    return;
+  }
+
+  statsEl.textContent = `共 ${data.length} 位客户`;
+
+  let html = '';
+  data.forEach(c => {
+    const hasPhone = c.phone && c.phone.trim();
+    const hasAddr = c.address && c.address.trim();
+    const addrIsUrl = hasAddr && isUrl(c.addresshed);
+
+    // 检测地址是否为URL
+    const addrUrl = hasAddr && isUrl(c.address) ? c.address : null;
+
+    html += '<div class="card">';
+    html += `<div class="name">${c.name}</div>`;
+
+    // 电话行
+    if (hasPhone) {
+      html += `<div class="info-row"><span class="label">📞 电话</span><span class="value">${c.phone}</span></div>`;
+    } else {
+      html += `<div class="info-row"><span class="label">📞 电话</span><span class="value" style="color:#ccc;">暂无</span></div>`;
+    }
+
+    // 地址行
+    if (addrUrl) {
+      html += `<div class="info-row"><span class="label">📍 地址</span><span class="value"><a href="${addrUrl}" target="_blank" style="color:#1890ff;text-decoration:none;">点击查看地图导航</a></span></div>`;
+    } else if (hasAddr) {
+      html += `<div class="info-row"><span class="label">📍 地址</span><span class="value">${c.address}</span></div>`;
+    } else {
+      html += `<div class="info-row"><span class="label">📍 地址</span><span class="value" style="color:#ccc;">暂无</span></div>`;
+    }
+
+    // 操作按钮
+    html += '<div class="actions">';
+    if (hasPhone) {
+      html += `<a class="btn btn-call" href="tel:${c.phone}">📞 呼叫</a>`;
+    } else {
+      html += `<span class="btn btn-disabled">📞 无号码</span>`;
+    }
+    if (addrUrl) {
+      html += `<a class="btn btn-nav" href="${addrUrl}" target="_blank">🗺️ 导航</a>`;
+    } else if (hasAddr) {
+      const mapUrl = 'https://api.map.baidu.com/place/v2/search?query=' + encodeURIComponent(c.address) + '&region=汕头&output=html';
+      html += `<a class="btn btn-nav" href="https://map.baidu.com/search/${encodeURIComponent(c.address)}" target="_blank">🗺️ 导航</a>`;
+    } else {
+      html += `<span class="btn btn-disabled">🗺️ 无地址</span>`;
+    }
+    html += '</div>';
+
+    html += '</div>';
+  });
+
+  listEl.innerHTML = html;
+}
+
+// 搜索逻辑
+const input = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearBtn');
+
+function doSearch(keyword) {
+  const kw = keyword.trim().toLowerCase();
+  if (!kw) {
+    renderList(CUSTOMERS);
+    return;
+  }
+  const filtered = CUSTOMERS.filter(c =>
+    c.name.toLowerCase().includes(kw)
+  );
+  renderList(filtered);
+}
+
+input.addEventListener('input', function() {
+  const val = this.value;
+  clearBtn.classList.toggle('show', val.length > 0);
+  doSearch(val);
+});
+
+clearBtn.addEventListener('click', function() {
+  input.value = '';
+  input.focus();
+  clearBtn.classList.remove('show');
+  doSearch('');
+});
+
+// 初始渲染
+renderList(CUSTOMERS);
+</script>
+</body>
+</html>
